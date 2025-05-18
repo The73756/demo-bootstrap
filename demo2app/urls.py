@@ -11,5 +11,4 @@ urlpatterns = [
     path('create-request', CreateRequestView.as_view(), name='create-request'),
     path('site-admin', AdminRequestsView.as_view(), name='admin-index'),
     path('site-admin/edit/<int:pk>', EditRequestView.as_view(), name='edit-request')
-
 ]

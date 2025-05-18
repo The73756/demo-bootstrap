@@ -1,0 +1,310 @@
+<header>
+class RequestListView(ListView):
+    model = Request
+    template_name = 'index.html'
+
+    def get_queryset(self):
+        if self.request.user.is_anonymous:
+            return ''
+
+        if self.request.user.is_staff:
+            return Request.objects.all()
+        else:
+            return Request.objects.filter(user=self.request.user)
+
+
+class CustomLoginView(LoginView):
+    template_name = 'login.html'
+
+
+class CustomRegistrationView(CreateView):
+    model = UserModel
+    form_class = RegistrationForm
+    template_name = 'registration.html'
+    success_url = '/'
+
+    def form_valid(self, form):
+        user = form.save()
+        phone = form.cleaned_data['phone']
+        patronymic = form.cleaned_data['patronymic']
+        Profile.objects.create(user=user, phone=phone, patronymic=patronymic)
+
+        login(self.request, user=user)
+        return redirect(self.success_url)
+
+
+class CreateRequestView(LoginRequiredMixin, CreateView):
+    model = Request
+    template_name = 'create-request.html'
+    form_class = CreateRequestForm
+    success_url = '/'
+
+    def form_valid(self, form):
+        new_request = form.save(commit=False)
+        new_request.user = self.request.user
+
+        return super(CreateRequestView, self).form_valid(form)
+
+
+class AdminRequestsView(PermissionRequiredMixin, ListView):
+    model = Request
+    permission_required = 'is_stuff'
+    template_name = 'site-admin/index.html'
+
+    def handle_no_permission(self):
+        return redirect('/')
+
+    def get_queryset(self):
+        if not self.request.user.is_staff:
+            return redirect('/')
+        return Request.objects.all()
+
+
+class EditRequestView(PermissionRequiredMixin, UpdateView):
+    model = Request
+    permission_required = 'is_stuff'
+    template_name = 'site-admin/edit.html'
+    success_url = '/site-admin'
+    fields = ['address',
+              'date',
+              'phone',
+              'status',
+              'reject_message']
+
+    def handle_no_permission(self):
+        return redirect('/')
+</header>
+<body>
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name='Юзер', related_name='profile')
+    patronymic = models.CharField('Отчество', max_length=100)
+    phone = models.CharField('Номер телефона', max_length=100)
+
+    def __str__(self):
+        return f"{self.user.last_name} {self.user.first_name} {self.patronymic}"
+
+
+class RequestType(models.Model):
+    name = models.CharField('Название услуги', max_length=100)
+
+    def __str__(self):
+        return self.name
+
+
+class PaymentType(models.Model):
+    name = models.CharField('Тип оплаты')
+
+    def __str__(self):
+        return self.name
+
+
+class RequestStatus(models.Model):
+    name = models.CharField('Статус')
+
+    def __str__(self):
+        return self.name
+
+
+class Request(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Юзер')
+    address = models.CharField('Адрес', max_length=100)
+    date = models.DateTimeField('Дата', max_length=100)
+    phone = models.CharField('Контактный номер телефона', max_length=100)
+    type = models.ForeignKey(RequestType, verbose_name='Тип услуги', on_delete=models.CASCADE)
+    payment_type = models.ForeignKey(PaymentType, verbose_name='Тип оплаты', on_delete=models.CASCADE)
+    status = models.ForeignKey(RequestStatus, verbose_name='Статус', on_delete=models.CASCADE, default=1)
+    is_other = models.BooleanField('Другая услуга')
+    description = models.CharField('Описание услуги', blank=True, null=True)
+    reject_message = models.CharField('Причина отмены', default='', blank=True, null=True)
+
+    def __str__(self):
+        return f"От {self.user.last_name} {self.user.first_name}, ${self.type.name} на {self.date}"
+
+</body>
+<form>
+class RegistrationForm(UserCreationForm):
+    phone = forms.CharField(label='Номер телефона')
+    patronymic = forms.CharField(label='Отчество')
+    first_name = forms.CharField(label='Имя')
+    last_name = forms.CharField(label='Фамилия')
+    email = forms.EmailField(label='Адрес электронной почты')
+
+    class Meta:
+        model = User
+        fields = ['username', 'last_name', 'first_name', 'patronymic', 'phone', 'email']
+
+
+class CreateRequestForm(forms.ModelForm):
+    class Meta:
+        model = Request
+        fields = ['address', 'phone', 'date', 'type', 'payment_type', 'is_other', 'description']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'datetime-local'}),
+        }
+
+</form>
+<nav>
+urlpatterns = [
+    path('', RequestListView.as_view(), name='home'),
+    path('login', CustomLoginView.as_view(), name='login'),
+    path('registration', CustomRegistrationView.as_view(), name='registration'),
+    path('logout', LogoutView.as_view(), name='logout'),
+    path('create-request', CreateRequestView.as_view(), name='create-request'),
+    path('site-admin', AdminRequestsView.as_view(), name='admin-index'),
+    path('site-admin/edit/<int:pk>', EditRequestView.as_view(), name='edit-request')
+]
+</nav>
+<login>
+{% extends 'base.html' %}
+
+{% block title %}
+    Мой не сам - войти
+{% endblock %}
+
+{% block content %}
+    <form method="POST" class="form">
+        <h2>Вход</h2>
+
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <button class="btn btn-primary" type="submit">Войти</button>
+    </form>
+{% endblock %}
+</login>
+<main>
+{% load static %}
+
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="{% static 'bootstrap.min.css' %}">
+    <script defer src="{% static 'bootstrap.min.js' %}"></script>
+
+    <title>{% block title %}{% endblock %}</title>
+</head>
+<body>
+<header>
+    <div class="container">
+        <h1>
+            <a href="{% url 'home' %}">Мой не сам</a>
+        </h1>
+
+        <nav>
+            <ul>
+                {% if user.is_authenticated %}
+                    <li>
+                        {{ user.profile }}
+                    </li>
+                    {% if user.is_staff %}
+                        <li>
+                            <a class=" btn btn-warning" href="{% url 'admin-index' %}">Админ панель</a>
+                        </li>
+                    {% endif %}
+                    <li>
+                        <a class=" btn btn-success" href="{% url 'create-request' %}">Создать заявку</a>
+                    </li>
+                    <li>
+                        <form action="{% url 'logout' %}" method="POST">
+                            {% csrf_token %}
+                            <button class="btn btn-danger" type="submit">Выйти</button>
+                        </form>
+                    </li>
+                {% else %}
+                    <li>
+                        <a class="hover:tw-underline" href="{% url 'login' %}">Войти</a>
+                    </li>
+                    <li>
+                        <a class="hover:tw-underline" href="{% url 'registration' %}">Зарегистрироваться</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</header>
+<main class="container">
+
+    {% block content %}
+
+    {% endblock %}
+
+</main>
+
+<script src="{% static 'tailwind.min.js' %}"></script>
+<script>
+    tailwind.config = {
+        prefix: 'tw-'
+    }
+</script>
+</body>
+</html>
+</main>
+<article>
+    {% extends 'base.html' %}
+
+{% block title %}
+    Мой не сам - главная
+{% endblock %}
+
+{% block content %}
+    {% if not user.is_authenticated %}
+        <div class="tw-flex tw-items-center flex-column gap-2 justify-content-center tw-mt-10">
+            <h1 class="tw-flex tw-text-center tw-text-3xl tw-text-blue-500 text-bold">Добро пожаловать!</h1>
+            <p><a class="tw-underline" href={% url 'login' %}>Авторизуйтесь</a> что бы увидеть свои заявки</p>
+        </div>
+
+    {% else %}
+        <h2>{% if user.is_staff %}
+            Заявки пользователей
+        {% else %}
+            Ваши заявки
+        {% endif %}
+        </h2>
+
+        <div class="card-list">
+
+            {% for object in object_list %}
+                <div class="card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div data-status="{{ object.status.id }}" class="card-status">{{ object.status.name }}</div>
+                    </div>
+
+                    <h3>{{ object.address }}</h3>
+                    <p>{{ object.date }}</p>
+
+                    <div>
+                        <dl>
+                            <div>
+                                <dt>ФИО</dt>
+                                <dd>{{ object.user.profile }}</dd>
+                            </div>
+                            <div>
+                                <dt>Телефон</dt>
+                                <dd>{{ object.user.profile.phone }}</dd>
+                            </div>
+
+                            {% if object.is_other %}
+                                <div>
+                                    <dt>Описание</dt>
+                                    <dd>{{ object.description }}</dd>
+                                </div>
+                            {% endif %}
+
+                            {% if object.status.id == '5' %}
+                                <div>
+                                    <dt>Причина отмены</dt>
+                                    <dd>{{ object.reject_message }}</dd>
+                                </div>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}
+</article>
