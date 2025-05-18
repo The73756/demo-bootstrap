@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Мой не сам - админ панель
+{% endblock %}
+
+{% block content %}
+    <h2>
+        Админ панель
+    </h2>
+
+    {% if not user.is_staff %}
+        <h2 class="text-danger mt-5">Доступ запрещен</h2>
+    {% else %}
+        <div class="card-list">
+
+            {% for object in object_list %}
+                <div class="card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div data-status="{{ object.status.id }}" class="card-status">{{ object.status.name }}</div>
+                        <a href="{% url 'edit-request' object.id %}" class="btn btn-danger btn-sm">Редактировать</a>
+                    </div>
+
+                    <h3>{{ object.address }}</h3>
+                    <p>{{ object.date }}</p>
+
+                    <div>
+                        <dl>
+                            <div>
+                                <dt>ФИО</dt>
+                                <dd>{{ object.user.profile }}</dd>
+                            </div>
+                            <div>
+                                <dt>Телефон</dt>
+                                <dd>{{ object.user.profile.phone }}</dd>
+                            </div>
+
+                            {% if object.is_other %}
+                                <div>
+                                    <dt>Описание</dt>
+                                    <dd>{{ object.description }}</dd>
+                                </div>
+                            {% endif %}
+
+                            {% if object.status.id == '5' %}
+                                <div>
+                                    <dt>Причина отмены</dt>
+                                    <dd>{{ object.reject_message }}</dd>
+                                </div>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}

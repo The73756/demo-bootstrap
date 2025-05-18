@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Мой не сам - изменение заявки
+{% endblock %}
+
+{% block content %}
+    <form method="POST" class="form">
+        <h2>Изменение заявки</h2>
+        
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <button class="btn btn-primary" type="submit">Изменить</button>
+    </form>
+{% endblock %}

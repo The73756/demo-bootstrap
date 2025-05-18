@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Мой не сам - главная
+{% endblock %}
+
+{% block content %}
+    {% if not user.is_authenticated %}
+        <div class="tw-flex tw-items-center flex-column gap-2 justify-content-center tw-mt-10">
+            <h1 class="tw-flex tw-text-center tw-text-3xl tw-text-blue-500 text-bold">Добро пожаловать!</h1>
+            <p><a class="tw-underline" href={% url 'login' %}>Авторизуйтесь</a> что бы увидеть свои заявки</p>
+        </div>
+
+    {% else %}
+        <h2>{% if user.is_staff %}
+            Заявки пользователей
+        {% else %}
+            Ваши заявки
+        {% endif %}
+        </h2>
+
+        <div class="card-list">
+
+            {% for object in object_list %}
+                <div class="card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div data-status="{{ object.status.id }}" class="card-status">{{ object.status.name }}</div>
+                    </div>
+
+                    <h3>{{ object.address }}</h3>
+                    <p>{{ object.date }}</p>
+
+                    <div>
+                        <dl>
+                            <div>
+                                <dt>ФИО</dt>
+                                <dd>{{ object.user.profile }}</dd>
+                            </div>
+                            <div>
+                                <dt>Телефон</dt>
+                                <dd>{{ object.user.profile.phone }}</dd>
+                            </div>
+
+                            {% if object.is_other %}
+                                <div>
+                                    <dt>Описание</dt>
+                                    <dd>{{ object.description }}</dd>
+                                </div>
+                            {% endif %}
+
+                            {% if object.status.id == '5' %}
+                                <div>
+                                    <dt>Причина отмены</dt>
+                                    <dd>{{ object.reject_message }}</dd>
+                                </div>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+
+
+{% endblock %}
