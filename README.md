@@ -21,4 +21,5 @@
     ```
 6. Скачать либы (бутстрап, тв)
 7. {% load static %} {% static 'bootstrap.min.js' %}
-8. Делать демку
+8. admin.py admin.site.register(Profile)
+9. Делать демку

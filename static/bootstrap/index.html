@@ -1,4 +1,13 @@
 <header>
+from django.contrib.auth import login
+from django.contrib.auth.mixins import *
+from django.contrib.auth.views import LoginView, UserModel
+from django.shortcuts import redirect
+from django.views.generic import ListView, CreateView, UpdateView
+
+from demo2app.forms import *
+from demo2app.models import *
+
 class RequestListView(ListView):
     model = Request
     template_name = 'index.html'
@@ -122,6 +131,10 @@ class Request(models.Model):
 
 </body>
 <form>
+from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+
 class RegistrationForm(UserCreationForm):
     phone = forms.CharField(label='Номер телефона')
     patronymic = forms.CharField(label='Отчество')
